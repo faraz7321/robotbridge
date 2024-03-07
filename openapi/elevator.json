@@ -1,0 +1,113 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Elevator Simulator",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": ""
+    }
+  ],
+  "paths": {
+    "/state": {
+      "get": {
+        "operationId": "state",
+        "tags": [
+          "State"
+        ],
+        "responses": {
+          "200": {
+            "description": "Elevator state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/State"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Retrieves the elevator state.",
+        "description": "Retrieves the elevator state containing the current level where the elevator is and if the elevator is moving.",
+        "parameters": [],
+        "deprecated": false
+      },
+      "parameters": []
+    },
+    "/call": {
+      "post": {
+        "operationId": "call",
+        "tags": [
+          "Call"
+        ],
+        "parameters": [
+          {
+            "name": "level",
+            "description": "The level where the elevator is called",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "priority": {
+                    "readOnly": true,
+                    "description": "Flag if the call is a priority call meaning it should have precedence over other calls",
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Calling elevator to specific level successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "State": {
+        "type": "object",
+        "description": "",
+        "deprecated": false,
+        "properties": {
+          "level": {
+            "readOnly": true,
+            "type": "number"
+          },
+          "moving": {
+            "readOnly": true,
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "responses": {},
+    "parameters": {},
+    "examples": {},
+    "requestBodies": {},
+    "headers": {},
+    "securitySchemes": {}
+  },
+  "security": [],
+  "tags": []
+}
