@@ -12,6 +12,7 @@
       </UFormGroup>
       
       <UButton class="justify-center" @click="connectRobot">Connect</UButton>
+      <UButton class="justify-center" @click="disconnectRobot">Disconnect</UButton>
       
       <div>
         <span class="font-bold">Socket state</span>: 
@@ -42,6 +43,7 @@
       </UFormGroup>
       
       <UButton class="justify-center" @click="connectElevator">Connect</UButton>
+      <UButton class="justify-center" @click="elevatorConnectionState = 'Not connected'">Disconnect</UButton>
       
       <div>
         <span class="font-bold">Connection state</span>: 
@@ -57,8 +59,8 @@
       </div>
 
       <div>
-        <span class="font-bold">Move status</span>:
-        <span v-if="elevatorState">{{ elevatorState.moving ? 'moving' : 'idle' }}</span>
+        <span class="font-bold">Status</span>:
+        <span v-if="elevatorState">{{ elevatorState.state }}</span>
         <span v-else>Unknown</span>
       </div>
 
@@ -116,10 +118,16 @@ function connectRobot() {
   currentSocket.value = socket;
 }
 
+function disconnectRobot() {
+  if (currentSocket.value) {
+    currentSocket.value.close();
+  }
+}
+
 const elevatorIp = ref('192.168.x.x');
 const elevatorConnectionState = ref<ConnectionState>('Not connected');
-type ElevatorState = { level: number; moving?: boolean };
-const elevatorState = ref<{ level: number; moving?: boolean }>();
+type ElevatorState = { level: number; state: string };
+const elevatorState = ref<ElevatorState>();
 
 async function connectElevator() {
   try {

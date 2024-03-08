@@ -75,9 +75,9 @@
             "readOnly": true,
             "type": "number"
           },
-          "moving": {
+          "state": {
             "readOnly": true,
-            "type": "boolean"
+            "type": "string"
           }
         }
       }
