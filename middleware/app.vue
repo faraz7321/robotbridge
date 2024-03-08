@@ -2,22 +2,22 @@
   <div class="flex flex-col items-center gap-4">
     <h1 class="text-3xl font-bold my-4">Elevator4Robot Middleware</h1>
 
+    <UDivider size="lg" >
+      <h2 class="text-2xl font-bold my-4">Current robot state</h2>
+    </UDivider>
+
     <div class="flex flex-col [&>*]:w-full items-center gap-4 w-[300px]">
       <UFormGroup label="Robot IP-Address" name="robot-ip" description="Just the IP adress without protocol and port">
         <UInput v-model="robotIp" />
       </UFormGroup>
       
-      <UButton class="justify-center" @click="connect">Connect</UButton>
+      <UButton class="justify-center" @click="connectRobot">Connect</UButton>
       
       <div>
         <span class="font-bold">Socket state</span>: 
         {{  socketState }}
       </div>
     </div>
-
-    <UDivider size="lg" >
-      <h2 class="text-2xl font-bold my-4">Current robot state</h2>
-    </UDivider>
 
     <div>
       <div>
@@ -36,12 +36,35 @@
       <h2 class="text-2xl font-bold my-4">Elevator</h2>
     </UDivider>
 
-    <div>
+    <div class="flex flex-col [&>*]:w-full items-center gap-4 w-[300px]">
+      <UFormGroup label="Elevator IP-Address" name="elevator-ip" description="Just the IP address without protocol and port">
+        <UInput v-model="elevatorIp" />
+      </UFormGroup>
+      
+      <UButton class="justify-center" @click="connectElevator">Connect</UButton>
+      
+      <div>
+        <span class="font-bold">Connection state</span>: 
+        {{  elevatorConnectionState }}
+      </div>
+    </div>
+
+    <div class="flex flex-col items-center gap-4">
       <div>
         <span class="font-bold">Current level</span>:
         <span v-if="elevatorState">{{ elevatorState.level }}</span>
         <span v-else>Unknown</span>
       </div>
+
+      <div>
+        <span class="font-bold">Move status</span>:
+        <span v-if="elevatorState">{{ elevatorState.moving ? 'moving' : 'idle' }}</span>
+        <span v-else>Unknown</span>
+      </div>
+
+      <UButton class="justify-center" @click="callElevator(1)">Call to level 1</UButton>
+      <UButton class="justify-center" @click="callElevator(2)">Call to level 2</UButton>
+      <UButton class="justify-center" @click="callElevator(3)">Call to level 3</UButton>
     </div>
   </div>
 </template>
@@ -52,15 +75,16 @@ import { ref } from 'vue';
 import { createEnableTopicMessage, parseMessage } from './utils/WebsocketApi';
 import type { PlanningState, TrackedPose } from './utils/WebsocketApi';
 
+type ConnectionState = 'Not connected' | 'Connecting...' | 'Connected' | 'Connection failed';
+
 const robotIp = ref('192.168.x.x');
 const currentSocket = ref<WebSocket>();
-const socketState = ref<'Not connected' | 'Connecting...' | 'Connected' | 'Connection failed'>('Not connected');
+const socketState = ref<ConnectionState>('Not connected');
 
 const trackedPose = ref<TrackedPose>();
 const planningState = ref<PlanningState>();
-const elevatorState = ref<{ level: number }>();
 
-function connect() {
+function connectRobot() {
   if (currentSocket.value) {
     currentSocket.value.close();
   }
@@ -92,7 +116,47 @@ function connect() {
   currentSocket.value = socket;
 }
 
-const waitingForElevator = computed(() => {
+const elevatorIp = ref('192.168.x.x');
+const elevatorConnectionState = ref<ConnectionState>('Not connected');
+type ElevatorState = { level: number; moving?: boolean };
+const elevatorState = ref<{ level: number; moving?: boolean }>();
 
+async function connectElevator() {
+  try {
+    elevatorConnectionState.value = 'Connecting...';
+    const res = await fetch(`http://${elevatorIp.value}`);
+    if (res.status !== 200) {
+      throw new Error('Connection failed');
+    }
+    elevatorConnectionState.value = 'Connected';
+  } catch {
+    elevatorConnectionState.value = 'Connection failed';
+  }
+}
+
+onMounted(() => {
+  setInterval(async () => {
+    if (elevatorConnectionState.value !== 'Connected') {
+      return;
+    }
+    try {
+      const res = await fetch(`http://${elevatorIp.value}/state`);
+      const state: ElevatorState = await res.json();
+      elevatorState.value = state;
+    } catch (error) {
+      // Nothing to do
+    }
+  }, 3000);
 });
+
+async function callElevator(level: number) {
+  if (elevatorConnectionState.value !== 'Connected') {
+    return;
+  }
+  try {
+    await fetch(`http://${elevatorIp.value}/call?level=${level}`, { method: 'post' });
+  } catch (error) {
+    // Nothing to do
+  }
+}
 </script>
