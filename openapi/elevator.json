@@ -7,8 +7,12 @@
   },
   "servers": [
     {
-      "url": "/",
-      "description": ""
+      "url": "http://192.168.194.236/",
+      "description": "Our wood house"
+    },
+    {
+      "url": "http://localhost:8080/",
+      "description": "Local development"
     }
   ],
   "paths": {
@@ -46,38 +50,15 @@
         "parameters": [
           {
             "name": "level",
-            "description": "The level where the elevator is called",
+            "in": "query",
             "schema": {
               "type": "number"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "priority": {
-                    "readOnly": true,
-                    "description": "Flag if the call is a priority call meaning it should have precedence over other calls",
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Calling elevator to specific level successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "boolean"
-                }
-              }
-            }
+            "description": "Calling elevator to specific level successful"
           }
         }
       }
@@ -94,9 +75,9 @@
             "readOnly": true,
             "type": "number"
           },
-          "moving": {
+          "state": {
             "readOnly": true,
-            "type": "boolean"
+            "type": "string"
           }
         }
       }
