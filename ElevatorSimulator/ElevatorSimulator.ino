@@ -1,64 +1,73 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <espnow.h>
+#include <LedControl.h>
+#include <ESP8266WebServer.h>
 
 
-// REPLACE WITH RECEIVER MAC Address
-uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+#define CLK_PIN   14 // or SCK      D5
+#define DATA_PIN  13 // or MOSI     D7
+#define CS_PIN    15 // or SS //    D8
+#define MAX_DEVICES 1
 
-// Structure example to send data
-// Must match the receiver structure
-typedef struct struct_message {
-  int floor;
-} struct_message;
+ESP8266WebServer server(80);
 
-// Create a struct_message called myData
-String myData;
+LedControl lc = LedControl(DATA_PIN,CLK_PIN, CS_PIN, MAX_DEVICES );
 
-unsigned long lastTime = 0;  
-unsigned long timerDelay = 2000;  // send readings timer
+// Display code
 
-// Callback when data is sent
-void onDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
-  Serial.print("Last Packet Send Status: ");
-  if (sendStatus == 0){
-    Serial.println("Delivery success");
-  }
-  else{
-    Serial.println("Delivery fail");
-  }
-}
 
-// Callback function that will be executed when data is received
-void onDataRecv(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
-  memcpy(&myData, incomingData, sizeof(myData));
-//  Serial.print("Mac address: ");
-//  Serial.println(mac);
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  Serial.print("Received: ");
-  Serial.print(myData);
-  memcpy(&myData, incomingData, sizeof(myData));
-//  Serial.print("call for floor: ");
-//  Serial.println(myData.floor);
-  Serial.println();
-}
- 
-//void loop() {
-//  if ((millis() - lastTime) > timerDelay) {
-//    // Set values to send
-//    strcpy(myData.a, "THIS IS A CHAR");
-//    myData.b = random(1,20);
-//    myData.c = 1.2;
-//    myData.d = "Hello";
-//    myData.e = false;
-//
-//    // Send message via ESP-NOW
-//    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
-//
-//    lastTime = millis();
+// Byte array for arrow up
+byte arrowUp[8] = {
+  B00001000,
+  B00000100,
+  B00000010,
+  B11111111,
+  B11111111,
+  B00000010,
+  B00000100,
+  B00001000
+};
+
+// Byte array for arrow down
+byte arrowDown[8] = {
+  B00010000,
+  B00100000,
+  B01000000,
+  B11111111,
+  B11111111,
+  B01000000,
+  B00100000,
+  B00010000
+};
+
+
+
+
+
+//void animateArrow(byte animation[][8]) {
+//  // Animate arrow scrolling
+//  for (int i = 0; i < 8; i++) {
+//    for (int j = 0; j < 8; j++) {
+//      lc.setRow(0, j, animation[i][j]);
+//    }
+//    delay(delaytime);
 //  }
 //}
+
+void displayArrow(byte pattern[]) {
+  for (int i = 0; i < 8; i++) {
+    lc.setRow(0, i, pattern[i]);
+  }
+}
+
+void clearArrow() {
+  // Clear the arrow from the display
+  lc.clearDisplay(0);
+}
+
+
+
+// Elevator Code
 
 const int firstFloor = 16; // D0
 const int secondFloor = 5; // D1
@@ -80,14 +89,25 @@ class Elevator {
       state = MOVING;
       int currentFloorNum = getFloorNumber(currentFloor);
       int targetFloorNum = getFloorNumber(floor);
+
+      // Display arrow direction
+      if (targetFloorNum > currentFloorNum) {
+        displayArrow(arrowUp);   // Display arrow up
+        // animateArrow(arrowUpAnimation); // Arrow pointing up
+      } else {
+        displayArrow(arrowDown); // Display arrow down
+        // animateArrow(arrowDownAnimation); // Arrow pointing down
+      }
+      
       Serial.print("Moving from floor ");
       Serial.print(currentFloorNum);
       Serial.print(" to floor ");
       Serial.println(targetFloorNum);
       // Simulate moving time
-      delay(abs(targetFloorNum - currentFloorNum) * 1000); // 1 second per floor
+      delay(abs(targetFloorNum - currentFloorNum) * 5000); // 1 second per floor
       currentFloor = floor;
 
+      clearArrow();
       // finished switching
       digitalWrite(currentFloor, HIGH);
       openDoors();
@@ -96,14 +116,14 @@ class Elevator {
     void openDoors() {
       state = DOORS_OPENING;
       Serial.println("Doors opening.");
-      delay(1000); // Simulate doors opening
+      delay(3000); // Simulate doors opening
       closeDoors();
     }
     
     void closeDoors() {
       state = DOORS_CLOSING;
       Serial.println("Doors closing.");
-      delay(1000); // Simulate doors closing
+      delay(3000); // Simulate doors closing
       state = IDLE;
     }
       public:
@@ -144,11 +164,73 @@ class Elevator {
 
 Elevator elevator;
 
+
 // board LED
 const int led = 2;
 
-//const char* ssid = "Schnuffinetz";
-//const char* password = "6581771422494752";
+const char* ssid = "AshokWifi";
+const char* password = "12345678";
+
+int parseLevel(int level) {
+  switch(level) {
+    case 1: return firstFloor;
+    case 2: return secondFloor;
+    case 3: return thirdFloor;
+    default: return firstFloor;
+  }
+}
+
+
+void callElevator() {
+  Serial.println("Call API called");
+  if (server.hasArg("level")) {
+    String level = server.arg("level");
+    Serial.print("Call for Level: ");
+    Serial.println(level.toInt());
+//    int floor = parseLevel(level);
+    elevator.callElevator(parseLevel(level.toInt()));
+    server.send(200);
+  } else {
+    server.send(400);
+  }
+}
+
+void getElevatorState() {
+  int floorNum = elevator.getFloorNumber(elevator.getCurrentFloor());
+  server.send(200, F("application/json"), "{\"level\":"+ String(floorNum) + ", \"state\":\"" + elevator.getState() + "\"}");
+}
+
+
+// Define routing
+void restServerRouting() {
+    server.enableCORS(true);
+    server.on("/", HTTP_GET, []() {
+        server.send(200, F("text/html"),
+            F("Welcome to the REST Web Server"));
+    });
+    // server.on(F("/helloWorld"), HTTP_GET, getHelloWord);
+
+    server.on(F("/call"), HTTP_POST, callElevator);
+    server.on(F("/state"), HTTP_GET, getElevatorState);
+}
+
+
+// Manage not found URL
+void handleNotFound() {
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
+}
+
 
 void setup() {
   Serial.begin(115200);
@@ -157,76 +239,59 @@ void setup() {
     ; // wait for serial port to connect. Needed for native USB
   }
 
+
+  // Initialize the MAX7219 device
+  lc.shutdown(0, false);
+  lc.setIntensity(0, 8);  // Set brightness level (0 is min, 15 is max)
+  lc.clearDisplay(0);     // Clear display register
+
     // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
-  // WiFi.begin(ssid, password);
-  // Init ESP-NOW
-  if (esp_now_init() != 0) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
+  WiFi.begin(ssid, password);
+  
   pinMode(led, OUTPUT);
 
   pinMode(firstFloor, OUTPUT);
   pinMode(secondFloor, OUTPUT);
   pinMode(thirdFloor, OUTPUT);
 
-  digitalWrite(firstFloor, LOW);
+  digitalWrite(firstFloor, HIGH);
   digitalWrite(secondFloor, LOW);
   digitalWrite(thirdFloor, LOW);
-  
-
-  // Once ESPNow is successfully Init, we will register for Send CB to
-  // get the status of Trasnmitted packet
-  esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
-  esp_now_register_send_cb(onDataSent);
-  esp_now_register_recv_cb(onDataRecv);
-  
-  // Register peer
-  esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
   
   digitalWrite(led, LOW);
   delay(100); 
   digitalWrite(led, HIGH);
   
   Serial.println("Elevator simulation started");
+
+  // Set server routing
+  restServerRouting();
+  // Set not found response
+  server.onNotFound(handleNotFound);
+  // Start server
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 void loop() {
 
-//  if (WiFi.status() != WL_CONNECTED)
-//  {
-//    WiFi.begin(ssid, password);
-//    while (WiFi.status() != WL_CONNECTED) {
-//      delay(100);
-//      digitalWrite(led, HIGH);
-//      delay(100);
-//      digitalWrite(led, LOW);
-//    }
-//    digitalWrite(led, HIGH);
-//  }
-  // Example usage
-  Serial.print("Elevator state: ");
-  Serial.print(elevator.getState());
-  Serial.print(", Current Floor: ");
-  Serial.println(elevator.getCurrentFloor());
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(100);
+      digitalWrite(led, HIGH);
+      delay(100);
+      digitalWrite(led, LOW);
+    }
+    
+    digitalWrite(led, HIGH);
+    Serial.print("Connected to ");
+    Serial.println(ssid);
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
 
-  delay(5000); // Wait for 5 seconds before calling to another floor
-
-  elevator.callElevator(secondFloor);
-  Serial.print("Elevator state: ");
-  Serial.print(elevator.getState());
-  Serial.print(", Current Floor: ");
-  Serial.println(elevator.getCurrentFloor());
-
-  delay(5000); // Wait for 5 seconds before calling to another floor
-
-  elevator.callElevator(thirdFloor);
-  Serial.print("Elevator state: ");
-  Serial.print(elevator.getState());
-  Serial.print(", Current Floor: ");
-  Serial.println(elevator.getCurrentFloor());
-
-  // Add a long delay to avoid repeating the loop too quickly
-  delay(5000);
+  server.handleClient();
 }
