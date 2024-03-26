@@ -1,4 +1,6 @@
-type BaseMessage<Topic extends string> = {
+type TopicType = '/tracked_pose' | '/planning_state' | '/trajectory' | 'unknown';
+
+type BaseMessage<Topic extends TopicType> = {
     topic: Topic;
 }
 
@@ -16,14 +18,18 @@ export type PlanningState = BaseMessage<'/planning_state'> & {
     fail_reason_str?: string;
     remaining_distance: number;
     target_poses: {
-        pos: [number, number];
+        pos: [number, number, number];
         ori: number;
     }[];
 }
 
+export type Trajectory = BaseMessage<'/trajectory'> & {
+    points: [number, number][];
+}
+
 type UnknownMessage = BaseMessage<'unknown'>;
 
-type Messages = TrackedPose | PlanningState;
+type Messages = TrackedPose | PlanningState | Trajectory;
 
 export function parseMessage(data: string): UnknownMessage | Messages {
     try {

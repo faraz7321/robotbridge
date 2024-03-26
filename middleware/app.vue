@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { createEnableTopicMessage, parseMessage } from './utils/WebsocketApi';
-import type { PlanningState, TrackedPose } from './utils/WebsocketApi';
+import type { PlanningState, TrackedPose, Trajectory } from './utils/WebsocketApi';
 
 type ConnectionState = 'Not connected' | 'Connecting...' | 'Connected' | 'Connection failed';
 
@@ -85,6 +85,14 @@ const socketState = ref<ConnectionState>('Not connected');
 
 const trackedPose = ref<TrackedPose>();
 const planningState = ref<PlanningState>();
+const trajectory = ref<Trajectory>();
+
+watch(trajectory, () => {
+  if (trajectory.value) {
+    console.log('Tarjectory points: ');
+    trajectory.value.points.forEach((point) => console.log(point));
+  }
+});
 
 function connectRobot() {
   if (currentSocket.value) {
@@ -95,7 +103,7 @@ function connectRobot() {
   socketState.value = 'Connecting...';
   socket.addEventListener("open", (event) => {
     socketState.value = 'Connected';
-    socket.send(createEnableTopicMessage(['/tracked_pose', '/planning_state']));
+    socket.send(createEnableTopicMessage(['/tracked_pose', '/planning_state', '/trajectory']));
   });
   socket.addEventListener('error', (event) => {
     socketState.value = `Connection failed`;
@@ -110,8 +118,12 @@ function connectRobot() {
     const message = parseMessage(event.data);
     if (message.topic === '/tracked_pose') {
       trackedPose.value = message;
-    } else if (message.topic === '/planning_state') {
+    }
+    if (message.topic === '/planning_state') {
       planningState.value = message;
+    }
+    if (message.topic === '/trajectory') {
+      trajectory.value = message;
     }
   });
 
