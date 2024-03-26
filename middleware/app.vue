@@ -75,22 +75,22 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { createEnableTopicMessage, parseMessage } from './utils/WebsocketApi';
-import type { PlanningState, TrackedPose, Trajectory } from './utils/WebsocketApi';
+import type { PlanningState, TrackedPose, Trajectory, AutoDoors } from './utils/WebsocketApi';
 
 type ConnectionState = 'Not connected' | 'Connecting...' | 'Connected' | 'Connection failed';
 
-const robotIp = ref('192.168.x.x');
+const robotIp = ref('8882304501908um');
 const currentSocket = ref<WebSocket>();
 const socketState = ref<ConnectionState>('Not connected');
 
 const trackedPose = ref<TrackedPose>();
 const planningState = ref<PlanningState>();
 const trajectory = ref<Trajectory>();
+const autoDoors = ref<AutoDoors>();
 
-watch(trajectory, () => {
-  if (trajectory.value) {
-    console.log('Tarjectory points: ');
-    trajectory.value.points.forEach((point) => console.log(point));
+watch(planningState, () => {
+  if (planningState.value) {
+    console.log('Tarjectory points: ', planningState);
   }
 });
 
@@ -103,7 +103,7 @@ function connectRobot() {
   socketState.value = 'Connecting...';
   socket.addEventListener("open", (event) => {
     socketState.value = 'Connected';
-    socket.send(createEnableTopicMessage(['/tracked_pose', '/planning_state', '/trajectory']));
+    socket.send(createEnableTopicMessage(['/tracked_pose', '/planning_state', '/nearby_auto_doors']));
   });
   socket.addEventListener('error', (event) => {
     socketState.value = `Connection failed`;
@@ -124,6 +124,9 @@ function connectRobot() {
     }
     if (message.topic === '/trajectory') {
       trajectory.value = message;
+    }
+    if (message.topic === '/nearby_auto_doors') {
+      autoDoors.value = message;
     }
   });
 
