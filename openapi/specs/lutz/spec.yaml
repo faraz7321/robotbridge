@@ -1,0 +1,62 @@
+openapi: 3.0.3
+info:
+  title: Lutz Aufzuege - Robot API
+  description: |-
+    This API specifies how to communicate with the LUTZ Aufzuege.
+    Interaction flow:
+      1. Call elevator frequently (every 1s) until currentFloor equals targetFloor and doorsOpen equals true
+      2. Robot enter elevator
+      3. Call elevator to target floor and frequently get status until currentFloor equals targetFloor equals true
+      4. Robot leaves elevator
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: http://192.168.1.103:1880/
+    description: 'Lutz Testtower'
+paths:
+  /elevator/call/{floor}:
+    get:
+      operationId: callElevator
+      description: |-
+        Request the elevator to come to the given floor and open doors.
+      parameters:
+        - in: path
+          name: floor
+          schema:
+            $ref: '#/components/schemas/Floor'
+          required: true
+          description: The 
+      responses:
+        200:
+          description: 'Call successful'
+        400:
+          description: 'Call failed'
+  /elevator/status:
+    get:
+      responses:
+        200:
+          description: 'Current elevator status'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentFloor: 
+                    $ref: '#/components/schemas/Floor'
+                  doorsOpen: 
+                    description: A flag determining if the doors of the elevator are currently open
+                    type: boolean
+                  outOfOrder:
+                    description: A flag determining if the elevator is currently out of order
+                    type: boolean
+components:
+  schemas:
+    Floor:
+      description: Floor identified by either the floor level number or a floor key.
+      oneOf:
+        - type: integer
+        - type: string
+  
+  

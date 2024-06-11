@@ -3,7 +3,10 @@ window.onload = function() {
 
   // the following lines will be replaced by docker/configurator, when it runs in a docker-container
   window.ui = SwaggerUIBundle({
-    url: "./elevator.json",
+    urls: [
+      { url: "./specs/geprog/spec.yaml", name: "GEPROG" },
+      { url: "./specs/lutz/spec.yaml", name: "Lutz" },
+    ],
     dom_id: '#swagger-ui',
     deepLinking: true,
     presets: [
