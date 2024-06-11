@@ -56,7 +56,7 @@ export default function useRobot(robotHost: string, robotSecret: string, busines
       currentSocket = undefined;
     });
     socket.addEventListener("message", (event) => {
-      const message = parseMessage(event.data);
+      const message = parseMessage(event.data.toString());
       if (message.topic === '/tracked_pose') {
         robot.trackedPose = message;
       } else if (message.topic === '/planning_state') {

@@ -1,5 +1,5 @@
 export default async function parseArgs() {
-    let robotHost: string = process.env.ROBOT_HOST;
+    let robotHost = process.env['ROBOT_HOST'];
     while (!robotHost) {
         process.stdout.write('Robot host missing. Enter robot ip address or host name: ');
         for await (const line of console) {
@@ -8,7 +8,7 @@ export default async function parseArgs() {
         }
     }
 
-    let robotSecret: string = process.env.ROBOT_SECRET
+    let robotSecret = process.env['ROBOT_SECRET']
     while (!robotSecret) {
         process.stdout.write('Robot secret is missing. Enter secret: ');
         for await (const line of console) {
@@ -17,7 +17,7 @@ export default async function parseArgs() {
         }
     }
 
-    let robotBusinessId: string = process.env.ROBOT_BUSINESS_ID;
+    let robotBusinessId = process.env['ROBOT_BUSINESS_ID'];
     while (!robotBusinessId) {
         process.stdout.write('Robot business id missing. Enter business id: ');
         for await (const line of console) {
@@ -26,7 +26,7 @@ export default async function parseArgs() {
         }
     }
 
-    let elevatorHost: string = process.env.ELEVATOR_HOST;
+    let elevatorHost = process.env['ELEVATOR_HOST'];
     while (!elevatorHost) {
         process.stdout.write('Elevator host missing. Enter elevator ip address or host name: ');
         for await (const line of console) {

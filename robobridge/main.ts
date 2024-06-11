@@ -1,3 +1,5 @@
+import { type FeatureCollection, type Geometry } from "geojson";
+
 import parseArgs from "./args";
 import { loadTasks } from "./autoxing";
 import useElevator from "./elevator/useElevator";
@@ -11,14 +13,14 @@ const elevator = useElevator(args.elevatorHost);
 const TYPE_ELEVATOR_WAITING_POINT = 28;
 const TYPE_ELEVATOR_INSIDE = 6;
 
-const poisMap: Record<string, { id: string, name: string, coordinates: [number, number], ori: number; mapUid: string, floor: string, type: number, dockingRadius: number }> = {};
+const poisMap: Record<string, { id: string, name: string, coordinates: number[], ori: number; mapUid: string, floor: string, type: number, dockingRadius: number }> = {};
 // const pois = await loadPOIs(robot);
 // for (const poi of pois) {
 //     poisMap[poi._id] = {
 //         id: poi._id,
 //         name: poi.name,
 //         coordinates: poi.coordinate,
-//         ori: poi.properties.yaw / 180 * Math.PI,
+//         ori: parseFloat(poi.properties.yaw) / 180 * Math.PI,
 //         mapUid: poi.areaId,
 //         floor: poi.floorName,
 //         type: poi.type,
@@ -31,17 +33,17 @@ const mapsMap: Record<string, (typeof maps)[0]> = {};
 for (const map of maps) {
     mapsMap[map.uid] = map;
     const mapDetails = await robot.restApi.getMap(`${map.id}`);
-    const pois = JSON.parse(mapDetails.overlays).features;
+    const { features: pois } = JSON.parse(mapDetails.overlays) as FeatureCollection<Geometry, { name: string; yaw: string; type: string; dockingRadius?: string}>;
     for (const poi of pois) {
-        if (poi.type === 'Feature' && poi.geometry.type === 'Point') {
+        if (typeof poi.id === 'string' && poi.type === 'Feature' && poi.geometry.type === 'Point') {
             poisMap[poi.id] = {
                 id: poi.id,
                 name: poi.properties.name,
                 coordinates: poi.geometry.coordinates,
-                ori: poi.properties.yaw / 180 * Math.PI,
+                ori: parseFloat(poi.properties.yaw) / 180 * Math.PI,
                 mapUid: map.uid,
                 floor: map.map_name,
-                type: poi.properties.type,
+                type: parseInt(poi.properties.type),
                 dockingRadius: parseFloat(poi.properties?.dockingRadius || '0.2'),
             }
         }

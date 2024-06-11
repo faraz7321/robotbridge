@@ -1,5 +1,7 @@
 import type { Robot } from "./robot/useRobot";
 
+type Task = { taskPts: { ext: { id: string }}[] };
+
 export async function loadTasks(robot: Robot) {
   const response = await fetch(
     "https://apiglobal.autoxing.com/task/v1.0/list",
@@ -15,9 +17,11 @@ export async function loadTasks(robot: Robot) {
       },
     }
   );
-  const { data } = await response.json();
+  const { data } = (await response.json()) as { data: { list: Task[] } };
   return data.list;
 }
+
+type Poi = { _id: string; areaId: string; floor: number; floorName: string; name: string; type: number; coordinate: [number, number]; properties: { yaw: string; dockingRadius?: string } };
 
 export async function loadPOIs(robot: Robot) {
   const response = await fetch(
@@ -30,7 +34,7 @@ export async function loadPOIs(robot: Robot) {
       },
     }
   );
-  const { data } = await response.json();
+  const { data } = (await response.json()) as { data: { list: Poi[] }};
   return data.list;
 }
 
