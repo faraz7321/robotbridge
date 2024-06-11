@@ -1,38 +1,14 @@
-export type Floor = string | undefined;
+import type { Elevator } from "./types";
+import useGeprogElevator from "./useGeprogElevator";
+import useLutzElevator from "./useLutzElevator";
 
-export type Elevator = {
-    elevatorHost: string;
-    currentFloor(): Promise<Floor>;
-    call: (floor: Floor) => Promise<boolean>;
-};
+export const availableTypes = ['geprog', 'lutz'];
 
-export default function useElevator(elevatorHost: string): Elevator {
-    const elevator: Elevator = {
-        elevatorHost,
-        currentFloor,
-        call,
-    };
 
-    async function currentFloor() {
-        try {
-            const res = await fetch(`http://${elevator.elevatorHost}/state`);
-            const state = await res.json();
-            return `${state.level}`;
-        } catch (error) {
-            // Nothing to do
-            return undefined;
-        }
+export default function useElevator(elevatorType: 'geprog' | 'lutz', elevatorHost: string): Elevator {
+    switch (elevatorType) {
+        case 'geprog': return useGeprogElevator(elevatorHost);
+        case 'lutz': return useLutzElevator(elevatorHost);
+        default: throw new Error('Unsupported elevator type');
     }
-
-    async function call(floor: Floor): Promise<boolean> {
-        try {
-            await fetch(`http://${elevator.elevatorHost}/call?level=${floor}`, { method: 'post' });
-            return true;
-        } catch (error) {
-            // Nothing to do
-            return false;
-        }
-    }
-
-    return elevator;
 }

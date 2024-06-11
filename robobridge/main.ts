@@ -8,7 +8,7 @@ import useRobot from "./robot/useRobot";
 const args = await parseArgs();
 
 const robot = useRobot(args.robotHost, args.robotSecret, args.robotBusinessId);
-const elevator = useElevator(args.elevatorHost);
+const elevator = useElevator(args.elevatorType, args.elevatorHost);
 
 const TYPE_ELEVATOR_WAITING_POINT = 28;
 const TYPE_ELEVATOR_INSIDE = 6;
