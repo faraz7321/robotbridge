@@ -2,10 +2,14 @@ import type { Elevator } from "./types";
 import useGeprogElevator from "./useGeprogElevator";
 import useLutzElevator from "./useLutzElevator";
 
-export const availableTypes = ['geprog', 'lutz'];
+type ElevatorType = 'geprog' | 'lutz';
+export const availableTypes: ElevatorType[] = ['geprog', 'lutz'];
 
+export function isValidElevatorType(type: string): type is ElevatorType {
+    return availableTypes.includes(type as ElevatorType);
+}
 
-export default function useElevator(elevatorType: 'geprog' | 'lutz', elevatorHost: string): Elevator {
+export default function useElevator(elevatorType: ElevatorType, elevatorHost: string): Elevator {
     switch (elevatorType) {
         case 'geprog': return useGeprogElevator(elevatorHost);
         case 'lutz': return useLutzElevator(elevatorHost);

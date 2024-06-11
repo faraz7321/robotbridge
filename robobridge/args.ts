@@ -1,4 +1,4 @@
-import { availableTypes } from "./elevator/useElevator";
+import { availableTypes, isValidElevatorType } from "./elevator/useElevator";
 
 export default async function parseArgs() {
     let robotHost = process.env['ROBOT_HOST'];
@@ -29,7 +29,7 @@ export default async function parseArgs() {
     }
 
     let elevatorType = process.env['ELEVATOR_Type'] || '';
-    while (!availableTypes.includes(elevatorType)) {
+    while (!isValidElevatorType(elevatorType)) {
         process.stdout.write(`Elevator type missing or invalid. Must be one of "${availableTypes.join('", "')}". Enter elevator type: `);
         for await (const line of console) {
             elevatorType = line;
