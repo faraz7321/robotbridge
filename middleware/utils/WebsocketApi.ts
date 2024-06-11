@@ -1,4 +1,4 @@
-type TopicType = '/tracked_pose' | '/planning_state' | '/trajectory' | '/nearby_auto_doors' | 'unknown';
+type TopicType = '/tracked_pose' | '/planning_state' | '/trajectory' | '/nearby_auto_doors' | '/path' | 'unknown';
 
 type Position = [number, number];
 
@@ -23,6 +23,7 @@ export type PlanningState = BaseMessage<'/planning_state'> & {
         pos: Position;
         ori: number;
     }[];
+    in_elevator: boolean;
 }
 
 export type Trajectory = BaseMessage<'/trajectory'> & {
@@ -40,9 +41,14 @@ export type AutoDoors = BaseMessage<'/nearby_auto_doors'> & {
     doors: Door[];
 }
 
+export type GlobalPath = BaseMessage<'/path'> & {
+    stamp: number;
+    positions: Position[];
+}
+
 type UnknownMessage = BaseMessage<'unknown'>;
 
-type Messages = TrackedPose | PlanningState | Trajectory | AutoDoors;
+type Messages = TrackedPose | PlanningState | Trajectory | AutoDoors | GlobalPath;
 
 export function parseMessage(data: string): UnknownMessage | Messages {
     try {
