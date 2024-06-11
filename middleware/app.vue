@@ -2,52 +2,78 @@
   <div class="flex flex-col items-center gap-4">
     <h1 class="text-3xl font-bold my-4">Elevator4Robot Middleware</h1>
 
-    <UDivider size="lg" >
+    <UDivider size="lg">
       <h2 class="text-2xl font-bold my-4">Current robot state</h2>
     </UDivider>
 
     <div class="flex flex-col [&>*]:w-full items-center gap-4 w-[300px]">
-      <UFormGroup label="Robot IP-Address" name="robot-ip" description="Just the IP adress without protocol and port">
-        <UInput v-model="robotIp" />
+      <UFormGroup label="Robot Host" name="robot-host"
+        description="Just the Hostname or IP address without protocol and port">
+        <UInput v-model="robotHost" />
       </UFormGroup>
-      
+
       <UButton class="justify-center" @click="connectRobot">Connect</UButton>
       <UButton class="justify-center" @click="disconnectRobot">Disconnect</UButton>
-      
+
       <div>
-        <span class="font-bold">Socket state</span>: 
-        {{  socketState }}
+        <span class="font-bold">Socket state</span>:
+        {{ socketState }}
       </div>
     </div>
 
     <div>
       <div>
         <span class="font-bold">Current position</span>:
-        <span v-if="trackedPose">{{ trackedPose.pos }}</span>
+        <span v-if="trackedPose">{{ trackedPose.pos }} {{ trackedPose.ori }}</span>
         <span v-else>Unknown</span>
       </div>
       <div>
-        <span class="font-bold">Move status</span>: 
+        <span class="font-bold">Move status</span>:
         <span v-if="planningState">{{ planningState.move_state }}</span>
+        <span v-else>Unknown</span>
+      </div>
+      <div>
+        <span class="font-bold">Action type</span>:
+        <span v-if="planningState">{{ planningState.action_type }}</span>
+        <span v-else>Unknown</span>
+      </div>
+      <div>
+        <span class="font-bold">In elevator?</span>:
+        <span v-if="planningState?.in_elevator">Yes</span>
+        <span v-else>No</span>
+      </div>
+      <div>
+        <span class="font-bold">Target pos</span>:
+        <span v-if="targetPos">{{ targetPos }}</span>
         <span v-else>Unknown</span>
       </div>
     </div>
 
-    <UDivider size="lg" >
+    <div class="flex flex-col gap-4">
+      <UButton class="justify-center" @click="showCurrentMap">Current Map</UButton>
+      <UButton class="justify-center" @click="showOverlays">Overlays</UButton>
+      <UButton class="justify-center" @click="showGlobalPath">Global path</UButton>
+      <UModal v-model="overlaysOpen">
+        <pre>{{ overlaysData }}</pre>
+      </UModal>
+    </div>
+
+    <UDivider size="lg">
       <h2 class="text-2xl font-bold my-4">Elevator</h2>
     </UDivider>
 
     <div class="flex flex-col [&>*]:w-full items-center gap-4 w-[300px]">
-      <UFormGroup label="Elevator IP-Address" name="elevator-ip" description="Just the IP address without protocol and port">
+      <UFormGroup label="Elevator IP-Address" name="elevator-ip"
+        description="Just the IP address without protocol and port">
         <UInput v-model="elevatorIp" />
       </UFormGroup>
-      
+
       <UButton class="justify-center" @click="connectElevator">Connect</UButton>
       <UButton class="justify-center" @click="elevatorConnectionState = 'Not connected'">Disconnect</UButton>
-      
+
       <div>
-        <span class="font-bold">Connection state</span>: 
-        {{  elevatorConnectionState }}
+        <span class="font-bold">Connection state</span>:
+        {{ elevatorConnectionState }}
       </div>
     </div>
 
@@ -74,69 +100,63 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { createEnableTopicMessage, parseMessage } from './utils/WebsocketApi';
-import type { PlanningState, TrackedPose, Trajectory, AutoDoors } from './utils/WebsocketApi';
+import useRobot from './utils/useRobot';
 
 type ConnectionState = 'Not connected' | 'Connecting...' | 'Connected' | 'Connection failed';
 
-const robotIp = ref('8882304501908um');
-const currentSocket = ref<WebSocket>();
-const socketState = ref<ConnectionState>('Not connected');
+const { robotHost, robotSecret, connect: connectRobot, disconnect: disconnectRobot, socketState, trackedPose, planningState, globalPath, restApi } = useRobot();
 
-const trackedPose = ref<TrackedPose>();
-const planningState = ref<PlanningState>();
-const trajectory = ref<Trajectory>();
-const autoDoors = ref<AutoDoors>();
-
-watch(planningState, () => {
-  if (planningState.value) {
-    console.log('Tarjectory points: ', planningState);
+const targetPos = computed(() => {
+  if (!globalPath.value || globalPath.value.positions.length === 0) {
+    return undefined;
   }
-});
+  return globalPath.value.positions[globalPath.value.positions.length - 1];
+})
 
-function connectRobot() {
-  if (currentSocket.value) {
-    currentSocket.value.close();
+async function showCurrentMap() {
+  const { data: currentMap } = await useFetch(`/api/robot/${robotHost.value}/chassis/current-map`, {
+    headers: {
+      Secret: robotSecret
+    }
+  });
+  if (currentMap.value) {
+    alert(`Robot is currently on map "${currentMap.value.map_name}"`);
+  } else {
+    alert(`Unable to load current map`);
   }
-
-  const socket = new WebSocket(`ws://${robotIp.value}:8000/ws/v2/topics`);
-  socketState.value = 'Connecting...';
-  socket.addEventListener("open", (event) => {
-    socketState.value = 'Connected';
-    socket.send(createEnableTopicMessage(['/tracked_pose', '/planning_state', '/nearby_auto_doors']));
-  });
-  socket.addEventListener('error', (event) => {
-    socketState.value = `Connection failed`;
-  });
-  socket.addEventListener("close", (event) => {
-    if (socketState.value !== `Connection failed`) {
-      socketState.value = 'Not connected';
-    }
-    currentSocket.value = undefined;
-  });
-  socket.addEventListener("message", (event) => {
-    const message = parseMessage(event.data);
-    if (message.topic === '/tracked_pose') {
-      trackedPose.value = message;
-    }
-    if (message.topic === '/planning_state') {
-      planningState.value = message;
-    }
-    if (message.topic === '/trajectory') {
-      trajectory.value = message;
-    }
-    if (message.topic === '/nearby_auto_doors') {
-      autoDoors.value = message;
-    }
-  });
-
-  currentSocket.value = socket;
 }
 
-function disconnectRobot() {
-  if (currentSocket.value) {
-    currentSocket.value.close();
+async function showGlobalPath() {
+  if (globalPath.value) {
+    overlaysData.value = JSON.stringify(globalPath.value, undefined, 2);
+    overlaysOpen.value = true;
   }
+}
+
+const overlaysData = ref<string>();
+const overlaysOpen = ref(false);
+
+async function showOverlays() {
+  const { data: currentMap } = await useFetch(`/api/robot/${robotHost.value}/chassis/current-map`, {
+    headers: {
+      Secret: robotSecret,
+    }
+  });
+  if (!currentMap.value) {
+    alert(`Unable to load current map`);
+    return;
+  }
+  const { data: overlays } = await useFetch(`/api/robot/${robotHost.value}/maps/${currentMap.value.id}/overlays`, {
+    headers: {
+      Secret: robotSecret
+    }
+  });
+  if (!overlays.value) {
+    alert('Unable to load overlays');
+    return;
+  }
+  overlaysData.value = JSON.stringify(overlays.value.features, undefined, 2);
+  overlaysOpen.value = true;
 }
 
 const elevatorIp = ref('192.168.x.x');
