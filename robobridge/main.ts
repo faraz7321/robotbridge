@@ -145,7 +145,7 @@ while (true) {
     await robot.restApi.enterElevator(elevatorInsidePoi);
 
     while (true) {
-        if (robot.trackedPose) {
+        if (robot.planningState?.move_state !== 'moving' && robot.trackedPose) {
             const distanceToPoi = Math.sqrt(Math.pow(elevatorInsidePoi.coordinates[0] - robot.trackedPose?.pos[0], 2) + Math.pow(elevatorInsidePoi.coordinates[1] - robot.trackedPose?.pos[1], 2));
             if (distanceToPoi <= elevatorInsidePoi.dockingRadius) {
                 break;
