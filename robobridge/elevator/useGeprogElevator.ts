@@ -11,7 +11,7 @@ export default function useGeprogElevator(elevatorHost: string): Elevator {
         try {
             const res = await fetch(`http://${elevator.elevatorHost}/state`);
             const state = (await res.json()) as { level: number; moving: boolean };
-            return state.level;
+            return `${state.level}`;
         } catch (error) {
             // Nothing to do
             return undefined;

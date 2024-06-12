@@ -1,4 +1,4 @@
-export type Floor = string | number | undefined;
+export type Floor = string | undefined;
 
 export type Elevator = {
     elevatorHost: string;

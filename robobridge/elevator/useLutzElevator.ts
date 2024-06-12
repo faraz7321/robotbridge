@@ -1,6 +1,6 @@
 import type { Elevator, Floor } from "./types";
 
-type Status = { currentFloor: Floor; doorsOpen: boolean; outOfOrder: boolean };
+type Status = { currentFloor: string | number; doorsOpen: boolean; outOfOrder: boolean };
 
 export default function useLutzElevator(elevatorHost: string): Elevator {
     const elevator: Elevator = {
@@ -13,7 +13,7 @@ export default function useLutzElevator(elevatorHost: string): Elevator {
         try {
             const res = await fetch(`http://${elevator.elevatorHost}/elevator/status`);
             const status = (await res.json()) as Status;
-            return status.currentFloor;
+            return `${status.currentFloor}`;
         } catch (error) {
             // Nothing to do
             return undefined;

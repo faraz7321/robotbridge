@@ -4,14 +4,18 @@ import parseArgs from "./args";
 import { loadTasks } from "./autoxing";
 import useElevator from "./elevator/useElevator";
 import useRobot from "./robot/useRobot";
+import type { Floor } from "./elevator/types";
 
 const args = await parseArgs();
 
 const robot = useRobot(args.robotHost, args.robotSecret, args.robotBusinessId);
+robot.connect();
 const elevator = useElevator(args.elevatorType, args.elevatorHost);
 
 const TYPE_ELEVATOR_WAITING_POINT = 28;
 const TYPE_ELEVATOR_INSIDE = 6;
+
+const floorMap: Record<string, string> = {"Floor1": "1", "Floor2": "2"};
 
 const poisMap: Record<string, { id: string, name: string, coordinates: number[], ori: number; mapUid: string, floor: string, type: number, dockingRadius: number }> = {};
 // const pois = await loadPOIs(robot);
@@ -42,7 +46,7 @@ for (const map of maps) {
                 coordinates: poi.geometry.coordinates,
                 ori: parseFloat(poi.properties.yaw) / 180 * Math.PI,
                 mapUid: map.uid,
-                floor: map.map_name,
+                floor: floorMap[map.map_name],
                 type: parseInt(poi.properties.type),
                 dockingRadius: parseFloat(poi.properties?.dockingRadius || '0.2'),
             }
@@ -88,11 +92,19 @@ while (true) {
     }
 
     const currentPoi = Object.values(poisMap).find((poi) => {
+        if (poi.type !== TYPE_ELEVATOR_WAITING_POINT) {
+            return false;
+        }
         if (!robot.trackedPose) {
+            console.log('No tracked pose available');
             return false;
         }
         const distanceToPoi = Math.sqrt(Math.pow(poi.coordinates[0] - robot.trackedPose?.pos[0], 2) + Math.pow(poi.coordinates[1] - robot.trackedPose?.pos[1], 2));
-        return distanceToPoi <= poi.dockingRadius;
+        const isPoi = distanceToPoi <= poi.dockingRadius;
+        if (!isPoi) {
+            console.log('Distance to ', poi.name, ' too big', distanceToPoi);
+        }
+        return isPoi;
     });
 
     if (!currentPoi) {
@@ -102,7 +114,7 @@ while (true) {
     }
 
     if (currentPoi.type !== TYPE_ELEVATOR_WAITING_POINT) {
-        console.log('POI is no elevator waiting point. Falling asleep for 10s');
+        console.log('POI is no elevator waiting point. Falling asleep for 10s', currentPoi);
         await new Promise((resolve) => setTimeout(resolve, 10_000));
         continue;
     }
@@ -114,19 +126,22 @@ while (true) {
         continue;
     }
 
-    while (await elevator.currentFloor() !== currentPoi.floor) {
-        console.log('Waiting for elevator to arrive on floor', currentPoi.floor, 'Falling asleep for 0.5s');
+    let currentFloor: Floor | undefined = undefined;
+    while ((currentFloor = await elevator.currentFloor()) !== currentPoi.floor) {
+        console.log('Waiting for elevator to arrive on floor ', currentPoi.floor, '. Currently it is at floor ', currentFloor, '. Falling asleep for 0.5s');
         await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     const elevatorInsidePoi = Object.values(poisMap).find((poi) => {
-        return poi.mapUid === currentPoi.floor && poi.type === TYPE_ELEVATOR_INSIDE;
+        return poi.mapUid === currentPoi.mapUid && poi.type === TYPE_ELEVATOR_INSIDE;
     });
     if (!elevatorInsidePoi) {
         console.log('Elevator inside poi not found. Falling asleep for 10s');
         await new Promise((resolve) => setTimeout(resolve, 10_000));
         continue;
     }
+
+    console.log('Instruct robot to enter elevator', elevatorInsidePoi);
     await robot.restApi.enterElevator(elevatorInsidePoi);
 
     while (true) {
@@ -147,8 +162,8 @@ while (true) {
         continue;
     }
 
-    while (await elevator.currentFloor() !== targetPoi.floor) {
-        console.log('Waiting for elevator to arrive on floor', targetPoi.floor, 'Falling asleep for 0.5s');
+    while ((currentFloor = await elevator.currentFloor()) !== targetPoi.floor) {
+        console.log('Waiting for elevator to arrive on floor ', targetPoi.floor, '. Currently it is at floor ', currentFloor, '. Falling asleep for 0.5s');
         await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
@@ -156,13 +171,15 @@ while (true) {
     await robot.restApi.setCurrentMap(targetPoi.mapUid);
 
     const elevatorTargetInsidePoi = Object.values(poisMap).find((poi) => {
-        return poi.mapUid === targetPoi.floor && poi.type === TYPE_ELEVATOR_INSIDE;
+        return poi.mapUid === targetPoi.mapUid && poi.type === TYPE_ELEVATOR_INSIDE;
     });
     if (!elevatorTargetInsidePoi) {
         console.log('Elevator target inside poi not found. Falling asleep for 10s');
         await new Promise((resolve) => setTimeout(resolve, 10_000));
         continue;
     }
+
+    console.log('Setting current pose of robot to', elevatorTargetInsidePoi);
     await robot.restApi.setCurrentPose(elevatorTargetInsidePoi);
     await robot.restApi.moveTo(targetPoi);
 }

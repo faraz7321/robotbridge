@@ -6,14 +6,17 @@ export class RobotRestAPI {
     Object.entries(params || {}).forEach(([param, value]) => {
      path = path.replaceAll(`:${param}`, value);
     });
+    console.log('[Robot REST-API] Executing request ', path);
     const response = await fetch(`http://${this.robotHost}:8090/${path}`, {
       method: body ? 'post' : 'get',
       body: body ? JSON.stringify(body) : undefined,
       headers: {
-        Secret: this.secret
+        Secret: this.secret,
+        'Content-Type': 'application/json',
       }
     });
     const data = await response.json();
+    console.log('[Robot REST-API] Got response ', path, data);
     return data as Endpoints[E];
   }
 
@@ -54,7 +57,7 @@ export class RobotRestAPI {
   }
 
   async setCurrentPose(params: { coordinates: number[]; ori: number }) {
-    return await this.makeRequest('chassis/moves', undefined, {
+    return await this.makeRequest('chassis/pose', undefined, {
       position: [...params.coordinates, 0],
       ori: params.ori,
     });
@@ -88,6 +91,9 @@ type Endpoints = {
     overlays_version: number;
   },
   'chassis/moves': {
+
+  },
+  'chassis/pose': {
 
   }
 }
