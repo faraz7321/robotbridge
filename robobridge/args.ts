@@ -28,7 +28,7 @@ export default async function parseArgs() {
         }
     }
 
-    let elevatorType = process.env['ELEVATOR_Type'] || '';
+    let elevatorType = process.env['ELEVATOR_TYPE'] || '';
     while (!isValidElevatorType(elevatorType)) {
         process.stdout.write(`Elevator type missing or invalid. Must be one of "${availableTypes.join('", "')}". Enter elevator type: `);
         for await (const line of console) {
