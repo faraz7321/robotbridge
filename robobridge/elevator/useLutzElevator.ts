@@ -11,10 +11,11 @@ export default function useLutzElevator(elevatorHost: string): Elevator {
 
     async function currentFloor() {
         try {
-            const res = await fetch(`http://${elevator.elevatorHost}/elevator/status`);
+            const res = await fetch(`http://${elevator.elevatorHost}:1880/elevator/status`);
             const status = (await res.json()) as Status;
             return `${status.currentFloor}`;
         } catch (error) {
+            console.log('Error at LUTZ elevator status api call', error);
             // Nothing to do
             return undefined;
         }
@@ -22,9 +23,10 @@ export default function useLutzElevator(elevatorHost: string): Elevator {
 
     async function call(floor: Floor): Promise<boolean> {
         try {
-            await fetch(`http://${elevator.elevatorHost}/call/${floor}`, { method: 'post' });
+            await fetch(`http://${elevator.elevatorHost}:1880/elevator/call/${floor}`, { method: 'post' });
             return true;
         } catch (error) {
+            console.log('Error at LUTZ elevator call api call', error);
             // Nothing to do
             return false;
         }

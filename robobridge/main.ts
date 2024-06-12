@@ -15,7 +15,7 @@ const elevator = useElevator(args.elevatorType, args.elevatorHost);
 const TYPE_ELEVATOR_WAITING_POINT = 28;
 const TYPE_ELEVATOR_INSIDE = 6;
 
-const floorMap: Record<string, string> = {"Floor1": "1", "Floor2": "2"};
+const floorMap: Record<string, string> = args.elevatorType === 'geprog' ? {"Floor1": "1", "Floor2": "2" } : { "Lutz Erdgeschoss": "E", "Lutz Obergeschoss": "1" };
 
 const poisMap: Record<string, { id: string, name: string, coordinates: number[], ori: number; mapUid: string, floor: string, type: number, dockingRadius: number }> = {};
 // const pois = await loadPOIs(robot);
