@@ -15,6 +15,8 @@
       <UButton class="justify-center" @click="connectRobot">Connect</UButton>
       <UButton class="justify-center" @click="disconnectRobot">Disconnect</UButton>
 
+      <ULink :to="`http://${robotHost}:8090/rb-admin`" target="_blank" external class="border border-primary rounded p-1 text-center">Open Robot Dashboard (guest@autoxing.com / autoxing)</ULink>
+
       <div>
         <span class="font-bold">Socket state</span>:
         {{ socketState }}
