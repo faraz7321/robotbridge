@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun main.ts"
+    "start": "bun main.ts",
+    "start:geprog": "bun --env-file .geprog.env main.ts",
+    "build": "bun build main.ts --compile --outfile robobridge && chmod +x robobridge"
   },
   "devDependencies": {
     "@types/bun": "1.1.3",
