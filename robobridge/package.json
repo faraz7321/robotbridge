@@ -5,7 +5,11 @@
   "scripts": {
     "start": "bun main.ts",
     "start:geprog": "bun --env-file .geprog.env main.ts",
-    "build": "bun build main.ts --compile --outfile robobridge && chmod +x robobridge"
+    "start:lutz": "bun --env-file .lutz.env main.ts",
+    "build": "bun build main.ts --compile --outfile robobridge",
+    "build:linux": "bun run build && chmod +x robobridge",
+    "build:windows": "bun run build -- --target=bun-windows-x64"
+
   },
   "devDependencies": {
     "@types/bun": "1.1.3",
