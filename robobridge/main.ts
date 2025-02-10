@@ -196,5 +196,6 @@ while (true) {
 
     console.log('Setting current pose of robot to', elevatorTargetInsidePoi);
     await robot.restApi.setCurrentPose(elevatorTargetInsidePoi);
+    // TODO: this does not end the current task. There must be an API call to continue with task.
     await robot.restApi.moveTo(targetPoi);
 }
