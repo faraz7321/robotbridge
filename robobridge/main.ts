@@ -55,6 +55,7 @@ for (const map of maps) {
 }
 
 while (true) {
+    console.log('############ New iteration ##############');
     console.log('Loading tasks of robot...')
     const tasks = await loadTasks(robot);
     if (tasks.length === 0) {
@@ -70,7 +71,7 @@ while (true) {
         await new Promise((resolve) => setTimeout(resolve, 10_000));
         continue;
     }
-    console.log('Robot is performing task to target', targetPoi);
+    console.log('Robot is performing task to target: ', targetPoi.name);
 
     const planningState = robot.planningState;
     if (!planningState) {
@@ -106,6 +107,8 @@ while (true) {
         }
         return isPoi;
     });
+    
+    console.log('Current POI is', currentPoi?.name);
 
     if (!currentPoi) {
         console.log('POI of current robot position not found. Falling asleep for 10s');
@@ -129,8 +132,11 @@ while (true) {
     let currentFloor: Floor | undefined = undefined;
     while ((currentFloor = await elevator.currentFloor()) !== currentPoi.floor) {
         console.log('Waiting for elevator to arrive on floor ', currentPoi.floor, '. Currently it is at floor ', currentFloor, '. Falling asleep for 0.5s');
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
     }
+
+    console.log('Elevator arrived on floor: ', currentPoi.floor, '. Waiting for doors to be open');
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
 
     const elevatorInsidePoi = Object.values(poisMap).find((poi) => {
         return poi.mapUid === currentPoi.mapUid && poi.type === TYPE_ELEVATOR_INSIDE;
@@ -141,10 +147,16 @@ while (true) {
         continue;
     }
 
-    console.log('Instruct robot to enter elevator', elevatorInsidePoi);
+    console.log('Instruct robot to enter elevator', elevatorInsidePoi.name);
     await robot.restApi.enterElevator(elevatorInsidePoi);
 
     while (true) {
+        if (robot.planningState?.move_state === 'failed') {
+            console.log('Entering elevator failed. Trying again in 1s.');
+            await new Promise((resolve) => setTimeout(resolve, 1_000));
+            console.log('Instruct robot to enter elevator', elevatorInsidePoi.name);
+            await robot.restApi.enterElevator(elevatorInsidePoi);
+        }
         if (robot.planningState?.move_state !== 'moving' && robot.trackedPose) {
             const distanceToPoi = Math.sqrt(Math.pow(elevatorInsidePoi.coordinates[0] - robot.trackedPose?.pos[0], 2) + Math.pow(elevatorInsidePoi.coordinates[1] - robot.trackedPose?.pos[1], 2));
             if (distanceToPoi <= elevatorInsidePoi.dockingRadius) {
@@ -152,7 +164,7 @@ while (true) {
             }
         }
         console.log('Waiting for robot to enter elevator. Falling asleep for 0.5s');
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 1_000));
     }
 
     console.log('Calling elevator to floor where target of robot is:', targetPoi.floor)
@@ -164,10 +176,13 @@ while (true) {
 
     while ((currentFloor = await elevator.currentFloor()) !== targetPoi.floor) {
         console.log('Waiting for elevator to arrive on floor ', targetPoi.floor, '. Currently it is at floor ', currentFloor, '. Falling asleep for 0.5s');
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
     }
 
-    console.log('Robot arrived on floor', targetPoi.floor, 'Let robot continue with task...');
+    console.log('Elevator arrived on floor: ', targetPoi.floor, '. Waiting for doors to be open');
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
+
+    console.log('Let robot continue with task...');
     await robot.restApi.setCurrentMap(targetPoi.mapUid);
 
     const elevatorTargetInsidePoi = Object.values(poisMap).find((poi) => {

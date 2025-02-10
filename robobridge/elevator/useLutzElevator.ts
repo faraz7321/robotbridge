@@ -23,7 +23,7 @@ export default function useLutzElevator(elevatorHost: string): Elevator {
 
     async function call(floor: Floor): Promise<boolean> {
         try {
-            await fetch(`http://${elevator.elevatorHost}:1880/elevator/call/${floor}`, { method: 'post' });
+            await fetch(`http://${elevator.elevatorHost}:1880/elevator/call/${floor}`);
             return true;
         } catch (error) {
             console.log('Error at LUTZ elevator call api call', error);

@@ -6,9 +6,10 @@
     "start": "bun main.ts",
     "start:geprog": "bun --env-file .geprog.env main.ts",
     "start:lutz": "bun --env-file .lutz.env main.ts",
+    "build:raw": "bun build main.ts --outfile robobridge-raw",
     "build": "bun build main.ts --compile --outfile robobridge",
     "build:linux": "bun run build && chmod +x robobridge",
-    "build:windows": "bun run build -- --target=bun-windows-x64"
+    "build:windows": "bun run --env-file .lutz.env  build -- --target=bun-windows-x64"
 
   },
   "devDependencies": {
