@@ -4,9 +4,9 @@
 #include <ESP8266WebServer.h>
 
 
-#define CLK_PIN   14 // or SCK      D5
-#define DATA_PIN  13 // or MOSI     D7
-#define CS_PIN    15 // or SS //    D8
+// #define CLK_PIN   14 // or SCK      D5
+//#define DATA_PIN  13 // or MOSI     D7
+//#define CS_PIN    15 // or SS //    D8
 #define MAX_DEVICES 1
 
 ESP8266WebServer server(80);
@@ -69,8 +69,8 @@ void clearArrow() {
 
 // Elevator Code
 
-const int firstFloor = 16; // D0
-const int secondFloor = 5; // D1
+const int firstFloor = 17; // D0
+const int secondFloor = 18; // D1
 const int thirdFloor = 4; // D2
 
 class Elevator {
@@ -168,7 +168,7 @@ Elevator elevator;
 // board LED
 const int led = 2;
 
-const char* ssid = "AshokWifi";
+const char* ssid = "FarazWifi";
 const char* password = "12345678";
 
 int parseLevel(int level) {
